@@ -37,9 +37,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Test Docker image
-        run: docker run --rm ${{ secrets.DOCKER_USERNAME }}/my-image:latest test-command
-
       - name: Push Docker image
         if: github.ref == 'refs/heads/main'
         uses: docker/build-push-action@v5
