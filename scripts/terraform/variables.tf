@@ -14,3 +14,8 @@ variable "function_runtime" {
   type        = string
   default     = "python39"
 }
+
+variable "service_account_email" {
+  description = "The service account email that will be allowed to invoke the functions"
+  type        = string
+}
