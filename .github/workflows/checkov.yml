@@ -10,6 +10,8 @@ on:
 
   workflow_call:
 
+permissions: read-all
+
 jobs:
   # This workflow contains a single job called "scan"
   scan:

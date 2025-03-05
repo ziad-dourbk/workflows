@@ -45,6 +45,9 @@ resource "google_cloudfunctions_function" "function1" {
   
   # Fix for CKV_GCP_124
   ingress_settings = "ALLOW_INTERNAL_ONLY"
+  
+  # Fix for CKV2_GCP_10
+  https_trigger_security_level = "SECURE_ALWAYS"
 }
 
 # Second Cloud Function
@@ -67,6 +70,9 @@ resource "google_cloudfunctions_function" "function2" {
   
   # Fix for CKV_GCP_124
   ingress_settings = "ALLOW_INTERNAL_ONLY"
+  
+  # Fix for CKV2_GCP_10
+  https_trigger_security_level = "SECURE_ALWAYS"
 }
 
 # Replace public access with specific service accounts or groups

@@ -1,5 +1,8 @@
 name: Build, Test, and Push Docker Image
 
+# Fix for CKV2_GHA_1
+permissions: read-all
+
 on:
   push:
     branches:
