@@ -72,7 +72,7 @@ resource "google_cloudfunctions_function" "function2" {
   ingress_settings = "ALLOW_INTERNAL_ONLY"
   
   # Fix for CKV2_GCP_10
-  # https_trigger_security_level = "SECURE_ALWAYS"
+  https_trigger_security_level = "SECURE_ALWAYS"
 }
 
 # Replace public access with specific service accounts or groups
