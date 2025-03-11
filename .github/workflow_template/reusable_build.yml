@@ -1,0 +1,21 @@
+name: Docker Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      image_name:
+        required: true
+        type: string
+
+jobs:
+  build:
+    uses: ziad-dourbk/workflows/.github/workflows/build.yml@main
+    secrets: inherit
+    with:
+      image_name: "ci-trials"
