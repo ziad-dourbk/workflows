@@ -33,11 +33,13 @@ jobs:
         uses: actions/checkout@v2
       - name: Approve PRs
         run: |
-          echo "Approving PRs..."
-          for pr_url in ${{ needs.sync.outputs.pr_urls }}; do
-            pr_number=$(basename "$pr_url")
-            api_url="https://api.github.com/repos/${{ github.repository }}/pulls/${pr_number}/reviews"
+          for url in $(echo $PR_URLS | jq -r '.[]'); do
+            REPO_NAME=$(echo $url | awk -F'/' '{print $(NF-3)"/"$(NF-2)}') # Extract OWNER/REPO
+            PR_NUMBER=$(echo $url | awk -F'/' '{print $NF}') # Extract PR number
+            echo "Approving PR #$PR_NUMBER in repository $REPO_NAME"
+            
             curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -d '{"event": "APPROVE"}' "$api_url"
-            echo "Approved PR #$pr_number"
+                 -d '{"event": "APPROVE"}' \
+                 "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER/reviews"
           done
+
