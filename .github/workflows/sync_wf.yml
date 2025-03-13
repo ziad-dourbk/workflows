@@ -23,7 +23,7 @@ jobs:
       - name: Set PR URLs Output
         id: set-pr-urls
         run: |
-          echo "pr_urls=${{ steps.sync.outputs.pull_requests }}" >> $GITHUB_ENV
+          echo "pr_urls=${{ steps.sync.outputs.pull_request_urls }}" >> $GITHUB_ENV
 
 
   approve-pr:
