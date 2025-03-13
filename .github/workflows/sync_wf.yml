@@ -15,3 +15,24 @@ jobs:
         with:
           GH_PAT: ${{ secrets.GH_PAT }}
           SKIP_PR: true
+          
+  approve-pr:
+    runs-on: ubuntu-latest
+    environment: sync_workflow
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Get PR URL
+      id: pr-url
+      run: |
+        PR_URL="https://api.github.com/repos/${{ github.repository }}/pulls?state=open"
+        echo "Fetching open PRs for repository ${{ github.repository }}"
+        PR_NUMBER=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$PR_URL" | jq '.[0].number')
+        echo "PR Number: $PR_NUMBER"
+        echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
+
+    - name: Approve PR
+      run: |
+        PR_URL="https://api.github.com/repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/reviews"
+        curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"event": "APPROVE"}' "$PR_URL"
