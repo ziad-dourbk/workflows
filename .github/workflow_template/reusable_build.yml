@@ -18,4 +18,4 @@ jobs:
     uses: ziad-dourbk/workflows/.github/workflows/build.yml@main
     secrets: inherit
     with:
-      image_name: "ci-trials"
+      image_name: "ci-trials1"
