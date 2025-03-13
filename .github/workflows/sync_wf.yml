@@ -1,39 +1,43 @@
-name: Sync Files
+name: Sync Files and Auto Approve PRs
+
 on:
   push:
     branches:
       - main
   workflow_dispatch:
+
 jobs:
   sync:
     runs-on: ubuntu-latest
+    outputs:
+      pr_urls: ${{ steps.sync.outputs.pr_urls }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@main
+        uses: actions/checkout@v2
       - name: Run GitHub File Sync
+        id: sync
         uses: BetaHuhn/repo-file-sync-action@v1
         with:
           GH_PAT: ${{ secrets.GH_PAT }}
           # SKIP_PR: true
-          
+      - name: Set PR URLs Output
+        run: |
+          echo "pr_urls=${{ steps.sync.outputs.pull_request_urls }}" >> $GITHUB_OUTPUT
+
   approve-pr:
     runs-on: ubuntu-latest
+    needs: sync
     environment: workflow_sync
-    needs: [sync]
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
-
-    - name: Get PR URL
-      id: pr-url
-      run: |
-        PR_URL="https://api.github.com/repos/${{ github.repository }}/pulls?state=open"
-        echo "Fetching open PRs for repository ${{ github.repository }}"
-        PR_NUMBER=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" "$PR_URL" | jq '.[0].number')
-        echo "PR Number: $PR_NUMBER"
-        echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_ENV
-
-    - name: Approve PR
-      run: |
-        PR_URL="https://api.github.com/repos/${{ github.repository }}/pulls/${{ env.PR_NUMBER }}/reviews"
-        curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" -d '{"event": "APPROVE"}' "$PR_URL"
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+      - name: Approve PRs
+        run: |
+          echo "Approving PRs..."
+          for pr_url in ${{ needs.sync.outputs.pr_urls }}; do
+            pr_number=$(basename "$pr_url")
+            api_url="https://api.github.com/repos/${{ github.repository }}/pulls/${pr_number}/reviews"
+            curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -d '{"event": "APPROVE"}' "$api_url"
+            echo "Approved PR #$pr_number"
+          done
