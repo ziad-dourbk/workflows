@@ -89,7 +89,7 @@ jobs:
             echo "Merging PR #$PR_NUMBER in repository $REPO_NAME"
             MERGE_RESPONSE=$(curl -s -X PUT -H "Authorization: Bearer $GH_APP_TOKEN" \
                  -H "Accept: application/vnd.github.v3+json" \
-                 -d '{"merge_method": "squash"}' \
+                 -d '{"merge_method": "merge"}' \
                  "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER/merge")
             # Check merge response
             MERGE_MESSAGE=$(echo "$MERGE_RESPONSE" | jq -r '.message')
