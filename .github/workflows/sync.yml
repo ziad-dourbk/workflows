@@ -54,8 +54,8 @@ jobs:
           sudo dpkg -i gh_2.66.1_linux_amd64.deb
           # git config --global credential.helper store
           # echo "https://x-access-token:${GH_TOKEN}@${GITHUB_SERVER_URL#https://}" > ~/.git-credentials
-          gh config set git_protocol https
-          gh auth login --with-token --hostname ${GITHUB_SERVER_URL#https://} <<< "${GH_TOKEN}"
+          # gh config set git_protocol https
+          # gh auth login --with-token --hostname ${GITHUB_SERVER_URL#https://} <<< "${GH_TOKEN}"
 
     - name: Approve the Pull Request
       env:
