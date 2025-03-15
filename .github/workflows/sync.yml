@@ -24,9 +24,7 @@ jobs:
 
     - name: Set PR URLs Output
       id: set-pr-urls
-      run: |
-        pr_urls=${{ steps.sync.outputs.pull_request_urls }}
-        echo "pr_urls=${pr_urls}" >> $GITHUB_OUTPUT
+      run: echo "pr_urls=$(echo '${{ steps.sync.outputs.pull_request_urls }}' | jq -c .)" >> $GITHUB_OUTPUT
 
   approve-and-merge:
     runs-on: ubuntu-latest
