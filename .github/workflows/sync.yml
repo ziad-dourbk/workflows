@@ -38,10 +38,6 @@ jobs:
       name: workflow_sync
       url: ${{ matrix.pr_url }}
     steps:
-    - name: Install GitHub CLI
-      run: |
-        wget https://github.com/cli/cli/releases/download/v2.66.1/gh_2.66.1_linux_amd64.deb
-        sudo dpkg -i gh_2.66.1_linux_amd64.deb
 
     - name: Generate GitHub App Token
       id: generate-token
@@ -54,9 +50,12 @@ jobs:
       env:
         GH_TOKEN: ${{ steps.generate-token.outputs.token }}
       run: |
-        git config --global credential.helper store
-        echo "https://x-access-token:${GH_TOKEN}@${GITHUB_SERVER_URL#https://}" > ~/.git-credentials
-        echo "${GH_TOKEN}" | gh auth login --with-token
+          wget https://github.com/cli/cli/releases/download/v2.66.1/gh_2.66.1_linux_amd64.deb
+          sudo dpkg -i gh_2.66.1_linux_amd64.deb
+          git config --global credential.helper store
+          echo "https://x-access-token:${GH_TOKEN}@${GITHUB_SERVER_URL#https://}" > ~/.git-credentials
+          gh config set git_protocol https
+          gh auth login --with-token --hostname ${GITHUB_SERVER_URL#https://} <<< "${GH_TOKEN}"
 
     - name: Approve the Pull Request
       env:
