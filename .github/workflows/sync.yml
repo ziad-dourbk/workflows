@@ -52,15 +52,30 @@ jobs:
 
     - name: Configure GitHub CLI
       run: |
+        echo "::group::Install GitHub CLI"
+
         wget https://github.com/cli/cli/releases/download/v2.66.1/gh_2.66.1_linux_amd64.deb
         sudo dpkg -i gh_2.66.1_linux_amd64.deb
-        git config --global credential.helper store
+
+        echo "::endgroup::"
+
+        echo "::group::Configure GitHub CLI"
+
         unset GH_TOKEN
+        git config --global credential.helper store
+        # Comment out for GHE Server
         gh config set git_protocol https
         gh auth login --with-token <<< "${{ steps.generate-token.outputs.token }}"
+        # Uncomment for GHE Server
         # echo "https://x-access-token:${GH_TOKEN}@${GITHUB_SERVER_URL#https://}" > ~/.git-credentials
         # gh config set git_protocol https
         # gh auth login --with-token --hostname ${GITHUB_SERVER_URL#https://} <<< "${GH_TOKEN}"
+
+        echo "::endgroup::"
+
+    - name: List Token Permissions
+      run: |
+        gh auth status
 
     - name: Approve the Pull Request
       run: |
