@@ -54,7 +54,7 @@ jobs:
             fi
       
             echo "Approving PR #$PR_NUMBER in repository $REPO_NAME"
-            curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            curl -X POST -H "Authorization: token ${{ secrets.GH_PAT }}" \
                  -d '{"event": "APPROVE"}' \
                  "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER/reviews"
           done
