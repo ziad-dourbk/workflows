@@ -1,4 +1,4 @@
-name: Sync Files and Auto Approve PRs
+name: Sync Files, Auto Approve, and Merge PRs
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
         run: echo "pr_urls=$(echo '${{ steps.sync.outputs.pull_request_urls }}' | jq -c .)" >> $GITHUB_OUTPUT
 
 
-  approve-pr:
+  approve-and-merge:
     runs-on: ubuntu-latest
     needs: sync
     environment: workflow_sync
@@ -50,7 +50,7 @@ jobs:
             puts JWT.encode(payload, private_key, "RS256")
           ')
   
-          # Get installation ID dynamically if not stored as a secret
+          # Get installation ID dynamically
           INSTALLATION_ID=$(curl -s -X GET \
             -H "Authorization: Bearer $GH_JWT" \
             -H "Accept: application/vnd.github.v3+json" \
@@ -65,12 +65,12 @@ jobs:
             "https://api.github.com/app/installations/$INSTALLATION_ID/access_tokens" | jq -r '.token')
   
           echo "GH_APP_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
-  
-      - name: Approve PRs
+
+      - name: Approve and Merge PRs
         run: |
           PR_URLS_JSON=$(echo '${{ needs.sync.outputs.pr_urls }}' | jq -c .)
           echo "Processing PRs from: $PR_URLS_JSON"
-  
+
           PR_URLS=($(echo "$PR_URLS_JSON" | jq -r '.[]'))
           
           for url in "${PR_URLS[@]}"; do
@@ -78,15 +78,30 @@ jobs:
             # Extract OWNER/REPO from URL
             REPO_NAME=$(echo "$url" | sed -E 's#https://github.com/([^/]+/[^/]+)/pull/[0-9]+#\1#')
             PR_NUMBER=$(echo "$url" | sed -E 's#.*/pull/([0-9]+)#\1#')
-  
+
             if [[ -z "$REPO_NAME" || -z "$PR_NUMBER" ]]; then
               echo "Skipping invalid URL: $url"
               continue
             fi
-  
+
             echo "Approving PR #$PR_NUMBER in repository $REPO_NAME"
             curl -X POST -H "Authorization: Bearer $GH_APP_TOKEN" \
                  -H "Accept: application/vnd.github.v3+json" \
                  -d '{"event": "APPROVE"}' \
                  "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER/reviews"
+
+            echo "Merging PR #$PR_NUMBER in repository $REPO_NAME"
+            MERGE_RESPONSE=$(curl -s -X PUT -H "Authorization: Bearer $GH_APP_TOKEN" \
+                 -H "Accept: application/vnd.github.v3+json" \
+                 -d '{"merge_method": "squash"}' \
+                 "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER/merge")
+
+            # Check merge response
+            MERGE_MESSAGE=$(echo "$MERGE_RESPONSE" | jq -r '.message')
+
+            if [[ "$MERGE_MESSAGE" == "Pull Request successfully merged" ]]; then
+              echo "✅ PR #$PR_NUMBER merged successfully!"
+            else
+              echo "❌ Failed to merge PR #$PR_NUMBER: $MERGE_MESSAGE"
+            fi
           done
