@@ -1,0 +1,72 @@
+name: Automatic Workflows Sync
+
+on:
+  push:
+    branches:
+    - main
+  workflow_dispatch:
+
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    outputs:
+      pr_urls: ${{ steps.set-pr-urls.outputs.pr_urls }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Run GitHub File Sync
+      id: sync
+      uses: BetaHuhn/repo-file-sync-action@v1
+      with:
+        GH_PAT: ${{ secrets.GH_PAT }}
+
+    - name: Set PR URLs Output
+      id: set-pr-urls
+      run: |
+        pr_urls=${{ steps.sync.outputs.pull_request_urls }}
+        echo "pr_urls=${pr_urls}" >> $GITHUB_OUTPUT
+
+  approve-and-merge:
+    runs-on: ubuntu-latest
+    needs: sync
+    strategy:
+      fail-fast: false
+      matrix:
+        pr_url: ${{ fromJson(needs.sync.outputs.pr_urls) }}
+    environment:
+      name: workflow_sync
+      url: ${{ matrix.pr_url }}
+    steps:
+    - name: Install GitHub CLI
+      run: |
+        wget https://github.com/cli/cli/releases/download/v2.66.1/gh_2.66.1_linux_amd64.deb
+        sudo dpkg -i gh_2.66.1_linux_amd64.deb
+
+    - name: Generate GitHub App Token
+      id: generate-token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ secrets.GH_APP_ID }}
+        private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+
+    - name: Configure GitHub CLI
+      env:
+        GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+      run: |
+        git config --global credential.helper store
+        echo "https://x-access-token:${GH_TOKEN}@${GITHUB_SERVER_URL#https://}" > ~/.git-credentials
+        echo "${GH_TOKEN}" | gh auth login --with-token
+
+    - name: Approve the Pull Request
+      env:
+        GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+      run: |
+        gh pr review ${{ matrix.pr_url }} --approve
+
+    - name: Merge the Pull Request
+      env:
+        GH_TOKEN: ${{ steps.generate-token.outputs.token }}
+      run: |
+        gh pr merge ${{ matrix.pr_url }} --merge
