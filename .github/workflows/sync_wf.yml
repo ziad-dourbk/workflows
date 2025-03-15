@@ -33,13 +33,44 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v2
-
+  
+      - name: Generate GitHub App Installation Token
+        id: get_token
+        env:
+          GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          GH_APP_ID: ${{ secrets.GH_APP_ID }}
+        run: |
+          echo "Fetching GitHub App Installation Token..."
+  
+          # Get JWT token for authentication
+          GH_JWT=$(ruby -rjwt -rbase64 -ropenssl -e '
+            payload = { iat: Time.now.to_i - 60, exp: Time.now.to_i + (10 * 60), iss: ENV["GH_APP_ID"] }
+            private_pem = ENV["GH_APP_PRIVATE_KEY"]
+            private_key = OpenSSL::PKey::RSA.new(private_pem)
+            puts JWT.encode(payload, private_key, "RS256")
+          ')
+  
+          # Get installation ID dynamically if not stored as a secret
+          INSTALLATION_ID=$(curl -s -X GET \
+            -H "Authorization: Bearer $GH_JWT" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/app/installations" | jq -r '.[0].id')
+  
+          echo "Installation ID: $INSTALLATION_ID"
+  
+          # Get installation token
+          ACCESS_TOKEN=$(curl -s -X POST \
+            -H "Authorization: Bearer $GH_JWT" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/app/installations/$INSTALLATION_ID/access_tokens" | jq -r '.token')
+  
+          echo "GH_APP_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
+  
       - name: Approve PRs
         run: |
           PR_URLS_JSON=$(echo '${{ needs.sync.outputs.pr_urls }}' | jq -c .)
           echo "Processing PRs from: $PR_URLS_JSON"
-      
-          # Convert JSON array to Bash array
+  
           PR_URLS=($(echo "$PR_URLS_JSON" | jq -r '.[]'))
           
           for url in "${PR_URLS[@]}"; do
@@ -47,15 +78,15 @@ jobs:
             # Extract OWNER/REPO from URL
             REPO_NAME=$(echo "$url" | sed -E 's#https://github.com/([^/]+/[^/]+)/pull/[0-9]+#\1#')
             PR_NUMBER=$(echo "$url" | sed -E 's#.*/pull/([0-9]+)#\1#')
-      
+  
             if [[ -z "$REPO_NAME" || -z "$PR_NUMBER" ]]; then
               echo "Skipping invalid URL: $url"
               continue
             fi
-      
+  
             echo "Approving PR #$PR_NUMBER in repository $REPO_NAME"
-            curl -X POST -H "Authorization: token ${{ secrets.GH_PAT }}" \
+            curl -X POST -H "Authorization: Bearer $GH_APP_TOKEN" \
+                 -H "Accept: application/vnd.github.v3+json" \
                  -d '{"event": "APPROVE"}' \
                  "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER/reviews"
           done
-      
