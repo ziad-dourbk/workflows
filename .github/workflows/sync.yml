@@ -76,6 +76,7 @@ jobs:
     - name: List Token Permissions
       run: |
         gh api \
+          -H "Authorization: Bearer ${{ steps.generate-token.outputs.token }}" \
           -H "Accept: application/vnd.github+json" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
           /user
