@@ -76,7 +76,9 @@ jobs:
     - name: List Token Permissions
       run: |
         echo "::group::Token Permissions"
-        gh auth status -t
+        curl -H "Authorization: Bearer ${{ steps.generate-token.outputs.token }}" \
+             -H "Accept: application/vnd.github.v3+json" \
+             https://api.github.com/user
         echo "::endgroup::"
 
     - name: Approve the Pull Request
