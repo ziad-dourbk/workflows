@@ -28,7 +28,9 @@ jobs:
 
     - name: Set PR URLs Output
       id: set-pr-urls
-      run: echo "pr_urls=$(echo '${{ steps.sync.outputs.pull_request_urls }}' | jq -c .)" >> $GITHUB_OUTPUT
+      run: |
+        pr_urls=${{ steps.sync.outputs.pull_request_urls }}
+        echo "pr_urls=$(echo '${pr_urls}' | jq -c .)" >> $GITHUB_OUTPUT
 
   approve-and-merge:
     runs-on: ubuntu-latest
@@ -59,32 +61,15 @@ jobs:
 
         echo "::endgroup::"
 
-        echo "::group::Configure GitHub CLI"
-
-        unset GH_TOKEN
-        git config --global credential.helper store
-        # Comment out for GHE Server
-        gh config set git_protocol https
-        gh auth login --with-token <<< "${{ steps.generate-token.outputs.token }}"
-        # Uncomment for GHE Server
-        # echo "https://x-access-token:${GH_TOKEN}@${GITHUB_SERVER_URL#https://}" > ~/.git-credentials
-        # gh config set git_protocol https
-        # gh auth login --with-token --hostname ${GITHUB_SERVER_URL#https://} <<< "${GH_TOKEN}"
-
-        echo "::endgroup::"
-
-    - name: List Token Permissions
-      run: |
-        gh api \
-          -H "Authorization: Bearer ${{ steps.generate-token.outputs.token }}" \
-          -H "Accept: application/vnd.github+json" \
-          -H "X-GitHub-Api-Version: 2022-11-28" \
-          /user
 
     - name: Approve the Pull Request
+      env:
+        GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
       run: |
         gh pr review ${{ matrix.pr_url }} --approve
 
     - name: Merge the Pull Request
+      env:
+        GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
       run: |
         gh pr merge ${{ matrix.pr_url }} --merge
