@@ -33,9 +33,24 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Debug PR URLs
-        run: echo "Raw PR_URLS: \"${{ needs.sync.outputs.pr_urls }}\""
-
       - name: Approve PRs
         run: |
-          PR_URL
+          PR_URLS_JSON="${{ needs.sync.outputs.pr_urls }}"
+          echo "Processing PRs from: $PR_URLS_JSON"
+
+          # Convert PR_URLS_JSON to a bash array
+          PR_URLS=($(echo "$PR_URLS_JSON" | jq -r '.[]'))
+          for url in "${PR_URLS[@]}"; do
+            echo "Processing URL: $url"
+            # Extract OWNER/REPO from URL
+            REPO_NAME=$(echo "$url" | sed -E 's#https://github.com/([^/]+/[^/]+)/pull/[0-9]+#\1#')
+            PR_NUMBER=$(echo "$url" | sed -E 's#.*/pull/([0-9]+)#\1#')
+            if [[ -z "$REPO_NAME" || -z "$PR_NUMBER" ]]; then
+              echo "Skipping invalid URL: $url"
+              continue
+            fi
+            echo "Approving PR #$PR_NUMBER in repository $REPO_NAME"
+            curl -X POST -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+                 -d '{"event": "APPROVE"}' \
+                 "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER/reviews"
+          done
