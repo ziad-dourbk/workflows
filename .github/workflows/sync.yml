@@ -51,14 +51,13 @@ jobs:
         private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
 
     - name: Configure GitHub CLI
-      env:
-        GH_TOKEN: ${{ steps.generate-token.outputs.token }}
       run: |
         wget https://github.com/cli/cli/releases/download/v2.66.1/gh_2.66.1_linux_amd64.deb
         sudo dpkg -i gh_2.66.1_linux_amd64.deb
         git config --global credential.helper store
+        unset GH_TOKEN
         gh config set git_protocol https
-        gh auth login --with-token <<< "${GH_TOKEN}"
+        gh auth login --with-token <<< "${{ steps.generate-token.outputs.token }}"
         # echo "https://x-access-token:${GH_TOKEN}@${GITHUB_SERVER_URL#https://}" > ~/.git-credentials
         # gh config set git_protocol https
         # gh auth login --with-token --hostname ${GITHUB_SERVER_URL#https://} <<< "${GH_TOKEN}"
