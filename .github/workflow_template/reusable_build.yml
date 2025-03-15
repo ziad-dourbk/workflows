@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - uat
+      - prod
   pull_request:
     branches:
       - main
