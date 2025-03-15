@@ -66,7 +66,7 @@ jobs:
   
           echo "GH_APP_TOKEN=$ACCESS_TOKEN" >> $GITHUB_ENV
 
-      - name: Approve and Merge PRs
+      - name: Merge PRs
         run: |
           PR_URLS_JSON=$(echo '${{ needs.sync.outputs.pr_urls }}' | jq -c .)
           echo "Processing PRs from: $PR_URLS_JSON"
@@ -84,16 +84,10 @@ jobs:
               continue
             fi
 
-            echo "Approving PR #$PR_NUMBER in repository $REPO_NAME"
-            curl -X POST -H "Authorization: Bearer $GH_APP_TOKEN" \
-                 -H "Accept: application/vnd.github.v3+json" \
-                 -d '{"event": "APPROVE"}' \
-                 "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER/reviews"
-
             echo "Merging PR #$PR_NUMBER in repository $REPO_NAME"
             MERGE_RESPONSE=$(curl -s -X PUT -H "Authorization: Bearer $GH_APP_TOKEN" \
                  -H "Accept: application/vnd.github.v3+json" \
-                 -d '{"merge_method": "squash"}' \
+                 -d '{"merge_method": "merge"}' \
                  "https://api.github.com/repos/$REPO_NAME/pulls/$PR_NUMBER/merge")
 
             # Check merge response
@@ -103,5 +97,6 @@ jobs:
               echo "✅ PR #$PR_NUMBER merged successfully!"
             else
               echo "❌ Failed to merge PR #$PR_NUMBER: $MERGE_MESSAGE"
+              echo "Full Response: $MERGE_RESPONSE"
             fi
           done
