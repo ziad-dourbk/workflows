@@ -1,3 +1,4 @@
 ziad-dourbk/ci-trials:
   - source: .github/workflow_template/reusable_build.yml
     dest: .github/workflows/build.yml
+    alias: test
