@@ -22,7 +22,7 @@ RUN chown -R apprunner:apprunner /app && \
 USER apprunner
 
 # Make port 80 available to the world outside this container
-EXPOSE 80
+EXPOSE 8080
 
 # Define environment variable
 ENV NAME World
